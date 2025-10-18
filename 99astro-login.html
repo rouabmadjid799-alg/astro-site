@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>Astro - Local Register/Login</title>
+  <style>
+    body{font-family: Arial, sans-serif; background:#0f2027;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+    .card{background:#fff;color:#2c5364;padding:30px;border-radius:10px;width:320px;box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+    input{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc}
+    button{width:100%;padding:10px;border-radius:6px;border:none;background:#2c5364;color:white;cursor:pointer;font-weight:bold}
+    .small{font-size:14px;color:#666;margin-top:8px;text-align:center}
+    .link{color:#2c5364;cursor:pointer;text-decoration:underline}
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <!-- dynamic content -->
+  </div>
+
+  <script>
+    // helpers
+    const storageKey = 'astro_users'; // users stored as JSON
+    function getUsers(){ return JSON.parse(localStorage.getItem(storageKey) || '[]'); }
+    function saveUsers(users){ localStorage.setItem(storageKey, JSON.stringify(users)); }
+
+    // UI render
+    function renderLogin() {
+      document.getElementById('card').innerHTML = `
+        <h2>Astro - Login</h2>
+        <input id="u" placeholder="Username" />
+        <input id="p" type="password" placeholder="Password" />
+        <button id="loginBtn">Login</button>
+        <div class="small">ما عندك حساب؟ <span class="link" id="toReg">سجّل الآن</span></div>
+        <p id="err" style="color:red;display:none"></p>
+      `;
+      document.getElementById('loginBtn').onclick = doLogin;
+      document.getElementById('toReg').onclick = renderRegister;
+    }
+
+    function renderRegister() {
+      document.getElementById('card').innerHTML = `
+        <h2>Astro - Register</h2>
+        <input id="ru" placeholder="Username" />
+        <input id="rp" type="password" placeholder="Password" />
+        <button id="regBtn">Register</button>
+        <div class="small">عندك حساب؟ <span class="link" id="toLogin">سجّل دخول</span></div>
+        <p id="err" style="color:red;display:none"></p>
+      `;
+      document.getElementById('regBtn').onclick = doRegister;
+      document.getElementById('toLogin').onclick = renderLogin;
+    }
+
+    function renderWelcome(username) {
+      document.getElementById('card').innerHTML = `
+        <h2>Welcome to Astro 🚀</h2>
+        <p>مرحباً، <strong>${escapeHtml(username)}</strong></p>
+        <p>الصفحة تتذكرك عند زيارتك القادمة في نفس المتصفح.</p>
+        <button id="logout">Logout</button>
+      `;
+      document.getElementById('logout').onclick = () => {
+        localStorage.removeItem('astro_current'); // logout
+        renderLogin();
+      };
+    }
+
+    // actions
+    function doRegister(){
+      const u = document.getElementById('ru').value.trim();
+      const p = document.getElementById('rp').value;
+      const err = document.getElementById('err');
+      err.style.display='none';
+      if(!u||!p){ err.textContent='أدخل اسم و كلمة مرور'; err.style.display='block'; return; }
+      const users = getUsers();
+      if(users.find(x=>x.username===u)){ err.textContent='الاسم مستخدم بالفعل'; err.style.display='block'; return; }
+      // NOTE: this demo stores password plain text (bad for production).
+      users.push({username:u, password:p});
+      saveUsers(users);
+      localStorage.setItem('astro_current', u); // remember current user
+      renderWelcome(u);
+    }
+
+    function doLogin(){
+      const u = document.getElementById('u').value.trim();
+      const p = document.getElementById('p').value;
+      const err = document.getElementById('err');
+      err.style.display='none';
+      const users = getUsers();
+      const found = users.find(x=>x.username===u && x.password===p);
+      if(!found){ err.textContent='الاسم أو كلمة المرور خطأ'; err.style.display='block'; return; }
+      localStorage.setItem('astro_current', u);
+      renderWelcome(u);
+    }
+
+    // on load: if remembered, go to welcome
+    function init(){
+      const cur = localStorage.getItem('astro_current');
+      if(cur){ renderWelcome(cur); } else { renderLogin(); }
+    }
+
+    // simple escape for display
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+    init();
+  </script>
+</body>
+</html>
